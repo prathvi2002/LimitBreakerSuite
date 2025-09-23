@@ -1695,13 +1695,13 @@ if __name__ == "__main__":
             ##* Modify from here to suite target.
 
             raw_hdrs = mutation_header   # verbatim, will NOT be edited
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0"}
-    #         body_data = """
-    # {
-    #     "name": "John Doe",
-    #     "age": 30,
-    #     "isStudent": false
-    # }"""
+
+            #* replace required_headers string with headers target requires
+            required_headers = """Cookie: datadome=1xlM0MFE3Q0HSqwA2cWg6i
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0"""
+
+            headers = parse_headers(required_headers)
+            body_data = """"""
 
             req_b, req_esc, resp_b, resp_esc = raw_http_request(
                 "example.com",
