@@ -1701,7 +1701,12 @@ if __name__ == "__main__":
 User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0"""
 
             headers = parse_headers(required_headers)
-            body_data = """"""
+    #         body_data = """
+    # {
+    #     "name": "John Doe",
+    #     "age": 30,
+    #     "isStudent": false
+    # }"""
 
             req_b, req_esc, resp_b, resp_esc = raw_http_request(
                 "example.com",
