@@ -26,7 +26,7 @@ def raw_http_request(host, port=443, method="GET", path="/", proxy=None,
     headers : dict or None
         Additional headers to append after raw_headers.
     raw_headers : str or None
-        Verbatim headers to include immediately after the request line.
+        Verbatim headers to include immediately after the request line. Ideal for HRS payload.
     body : str or bytes or None
         Request body. If given, Content-Length will be added automatically
         for POST, PUT, PATCH unless already present.
@@ -1462,6 +1462,27 @@ for ip_header in ip_headers:
 # ---------------------------------------------------------------------------------------------------
 
 
+def parse_headers(header_string):
+    """
+    Parses a raw HTTP header string into a dictionary.
+    
+    Args:
+        header_string (str): Multiline string containing headers.
+        
+    Returns:
+        dict: Dictionary with header names as keys and header values as values.
+    """
+    headers = {}
+    for line in header_string.strip().splitlines():
+        if not line.strip():
+            continue  # Skip empty lines
+        parts = line.split(":", 1)
+        if len(parts) == 2:
+            key, value = parts
+            headers[key.strip()] = value.strip()
+    return headers
+
+
 #* To test only selected techniques, comment out HRS method item from all_mutation_headers dictionary
 all_mutation_headers = {
     1: mutation_headers1,
@@ -1666,41 +1687,42 @@ all_mutation_headers = {
     200: mutation_headers200
 }
 
+print("Doesn't add a real browswer User-Agent header by default!")
 
+if __name__ == "__main__":
+    for mutation_header_key in all_mutation_headers:
+        for mutation_header in all_mutation_headers.get(mutation_header_key):
+            ##* Modify from here to suite target.
 
-for mutation_header_key in all_mutation_headers:
-    for mutation_header in all_mutation_headers.get(mutation_header_key):
-        ##* Modify from here to suite target.
+            raw_hdrs = mutation_header   # verbatim, will NOT be edited
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0"}
+    #         body_data = """
+    # {
+    #     "name": "John Doe",
+    #     "age": 30,
+    #     "isStudent": false
+    # }"""
 
-        raw_hdrs = mutation_header   # verbatim, will NOT be edited
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0"}
-#         body_data = """
-# {
-#     "name": "John Doe",
-#     "age": 30,
-#     "isStudent": false
-# }"""
+            req_b, req_esc, resp_b, resp_esc = raw_http_request(
+                "example.com",
+                port=443,
+                method="POST",
+                path="/",
+                # proxy=("127.0.0.1", 9090),  #! Use proxy with caution, as it might reject some requests containing mutated headers sent with the intention of Header Smuggling.
+                insecure=True,
+                headers=headers,
+                raw_headers=raw_hdrs,
+                timeout=5,
+                # body=body_data
+            )
 
-        req_b, req_esc, resp_b, resp_esc = raw_http_request(
-            "example.com",
-            port=443,
-            method="POST",
-            path="/",
-            proxy=("127.0.0.1", 9090),  #! Use proxy with caution, as it might reject some requests containing mutated headers sent with the intention of Header Smuggling.
-            insecure=True,
-            headers=headers,
-            raw_headers=raw_hdrs,
-            timeout=5,
-            # body=body_data
-        )
+            print("")
 
-        print("")
+            # # Print literal escaped view (shows \r and \n)
+            # print(req_esc)
+            # If you want the actual bytes repr:
+            print(repr(req_b))
 
-        # # Print literal escaped view (shows \r and \n)
-        # print(req_esc)
-        # If you want the actual bytes repr:
-        print(repr(req_b))
-
-        response_code, response_headers, response_body = parse_raw_http_response(raw_response=resp_b)
-        print(response_code)
-        print(response_headers)
+            response_code, response_headers, response_body = parse_raw_http_response(raw_response=resp_b)
+            print(response_code)
+            print(response_headers)
