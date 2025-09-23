@@ -1,11 +1,13 @@
 import socket
 import ssl
 
+
 def raw_http_request(host, port=443, method="GET", path="/", proxy=None,
                      insecure=False, headers=None, raw_headers=None,
-                     recv_buf=4096, timeout=None):
+                     body=None, recv_buf=4096, timeout=None):
     """
-    Send a raw HTTP/HTTPS request using sockets, with optional proxy, insecure SSL, and verbatim raw headers.
+    Send a raw HTTP/HTTPS request using sockets, with optional proxy, insecure SSL,
+    verbatim raw headers, and optional request body.
 
     Parameters
     ----------
@@ -14,7 +16,7 @@ def raw_http_request(host, port=443, method="GET", path="/", proxy=None,
     port : int
         Port to connect to (80 for HTTP, 443 for HTTPS).
     method : str
-        HTTP method (e.g., "GET", "POST").
+        HTTP method (e.g., "GET", "POST", "PUT", "PATCH").
     path : str
         Request path (may include query parameters).
     proxy : tuple or None
@@ -25,6 +27,9 @@ def raw_http_request(host, port=443, method="GET", path="/", proxy=None,
         Additional headers to append after raw_headers.
     raw_headers : str or None
         Verbatim headers to include immediately after the request line.
+    body : str or bytes or None
+        Request body. If given, Content-Length will be added automatically
+        for POST, PUT, PATCH unless already present.
     recv_buf : int
         Buffer size for each recv() call.
     timeout : float or None
@@ -39,6 +44,7 @@ def raw_http_request(host, port=443, method="GET", path="/", proxy=None,
     -----
     - raw_headers is sent exactly as provided (no normalization).
     - Host and Connection headers are added automatically if missing.
+    - Content-Length is auto-added for POST/PUT/PATCH if a body is present.
     - Returns both raw bytes and printable escaped versions showing `\r` and `\n`.
     """
 
@@ -71,21 +77,18 @@ def raw_http_request(host, port=443, method="GET", path="/", proxy=None,
     else:
         s = sock
 
-    # Request line (bytes)
+    # Request line
     url_prefix = f"http://{host}" if proxy and port != 443 else ""
     request_line = f"{method} {url_prefix}{path} HTTP/1.1\r\n"
     request_line_bytes = request_line.encode('latin-1')
 
-    # Build headers from dict (do NOT touch raw_headers content)
-    # If Host not provided in headers and not present in raw_headers, add it here.
+    # Check if Host is already provided in raw_headers or dict headers
     raw_contains_host = False
     if raw_headers:
-        # check case-insensitive presence of host: in raw_headers exactly as given
         for line in raw_headers.splitlines():
             if line.lower().startswith("host:"):
                 raw_contains_host = True
                 break
-
     user_provided_host = any(k.lower() == "host" for k in headers.keys())
     if not raw_contains_host and not user_provided_host:
         headers.setdefault('Host', host)
@@ -93,6 +96,14 @@ def raw_http_request(host, port=443, method="GET", path="/", proxy=None,
     # Default Connection header if not provided by user
     if not any(k.lower() == "connection" for k in headers.keys()):
         headers.setdefault('Connection', 'close')
+
+    # Handle Content-Length for methods with body
+    if method.upper() in ("POST", "PUT", "PATCH") and body is not None:
+        if not any(k.lower() == "content-length" for k in headers.keys()):
+            body_bytes = body.encode('latin-1') if isinstance(body, str) else body
+            headers["Content-Length"] = str(len(body_bytes))
+    else:
+        body_bytes = b"" if body is None else (body.encode('latin-1') if isinstance(body, str) else body)
 
     # Build header bytes from dict (safe: strip CR/LF from dict values)
     header_lines_bytes = b""
@@ -105,38 +116,31 @@ def raw_http_request(host, port=443, method="GET", path="/", proxy=None,
         line = f"{name}: {header_value}\r\n"
         header_lines_bytes += line.encode('latin-1')
 
-    # raw_headers_bytes: verbatim as provided (no normalization)
+    # raw_headers_bytes: verbatim as provided
     raw_headers_bytes = raw_headers.encode('latin-1') if raw_headers else b""
 
-    # Assemble bytes carefully:
-    # request_line + raw_headers_bytes + separator (if needed) + header_lines_bytes + final CRLF
+    # Assemble request
     parts = [request_line_bytes]
 
     if raw_headers_bytes:
         parts.append(raw_headers_bytes)
-        # If raw_headers already ends with CRLFCRLF, we assume it included the header-body separator.
         if raw_headers_bytes.endswith(b'\r\n\r\n'):
-            # We've already got separator, don't add anything before sending remaining headers.
-            # But to avoid duplicating headers accidentally, append remaining header lines directly.
             parts.append(header_lines_bytes)
         else:
-            # raw_headers was verbatim but didn't include header-body separator.
-            # We append a single CRLF to separate raw block from the remaining headers,
-            # then append remaining headers, then the final CRLF to end headers.
-            parts.append(b'\r\n')             # separator between raw block and dict headers
+            parts.append(b'\r\n')
             parts.append(header_lines_bytes)
-            parts.append(b'\r\n')             # header-body separator
+            parts.append(b'\r\n')
     else:
-        # No raw headers provided; just append header lines and final separator
         parts.append(header_lines_bytes)
         parts.append(b'\r\n')
 
+    parts.append(body_bytes)
     raw_request_bytes = b"".join(parts)
 
-    # Send exact bytes
+    # Send
     s.send(raw_request_bytes)
 
-    # Receive raw response bytes
+    # Receive response
     raw_response_bytes = b""
     try:
         while True:
@@ -147,10 +151,9 @@ def raw_http_request(host, port=443, method="GET", path="/", proxy=None,
     finally:
         s.close()
 
-    # Escaped printable forms (show \r and \n literally)
+    # Escaped printable forms
     def escape_bytes(b: bytes) -> str:
-        # decode latin-1 to preserve bytes, then replace CR/LF with escaped sequences
-        s = b.decode('latin-1')
+        s = b.decode('latin-1', errors="replace")
         return s.replace('\r', '\\r').replace('\n', '\\n')
 
     raw_request_escaped = escape_bytes(raw_request_bytes)
@@ -1664,34 +1667,40 @@ all_mutation_headers = {
 }
 
 
-if __name__ == "__main__":
 
-    for mutation_header_key in all_mutation_headers:
-        for mutation_header in all_mutation_headers.get(mutation_header_key):
-            ##* Modify from here to suite target.
+for mutation_header_key in all_mutation_headers:
+    for mutation_header in all_mutation_headers.get(mutation_header_key):
+        ##* Modify from here to suite target.
 
-            raw_hdrs = mutation_header   # verbatim, will NOT be edited
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0"}
+        raw_hdrs = mutation_header   # verbatim, will NOT be edited
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0"}
+#         body_data = """
+# {
+#     "name": "John Doe",
+#     "age": 30,
+#     "isStudent": false
+# }"""
 
-            req_b, req_esc, resp_b, resp_esc = raw_http_request(
-                "example.com",
-                port=443,
-                method="GET",
-                path="/",
-                # proxy=("127.0.0.1", 9090),  #! Use proxy with caution, as it might reject some requests containing mutated headers sent with the intention of Header Smuggling.
-                insecure=True,
-                headers=headers,
-                raw_headers=raw_hdrs,
-                timeout=5
-            )
+        req_b, req_esc, resp_b, resp_esc = raw_http_request(
+            "example.com",
+            port=443,
+            method="POST",
+            path="/",
+            proxy=("127.0.0.1", 9090),  #! Use proxy with caution, as it might reject some requests containing mutated headers sent with the intention of Header Smuggling.
+            insecure=True,
+            headers=headers,
+            raw_headers=raw_hdrs,
+            timeout=5,
+            # body=body_data
+        )
 
-            print("")
+        print("")
 
-            # # Print literal escaped view (shows \r and \n)
-            # print(req_esc)
-            # If you want the actual bytes repr:
-            print(repr(req_b))
+        # # Print literal escaped view (shows \r and \n)
+        # print(req_esc)
+        # If you want the actual bytes repr:
+        print(repr(req_b))
 
-            response_code, response_headers, response_body = parse_raw_http_response(raw_response=resp_b)
-            print(response_code)
-            print(response_headers)
+        response_code, response_headers, response_body = parse_raw_http_response(raw_response=resp_b)
+        print(response_code)
+        print(response_headers)
