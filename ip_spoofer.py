@@ -1,6 +1,9 @@
 import socket
 import ssl
 
+import sqlite3
+import json
+
 
 def raw_http_request(host, port=443, method="GET", path="/", proxy=None,
                      insecure=False, headers=None, raw_headers=None,
@@ -206,6 +209,55 @@ def parse_raw_http_response(raw_response: bytes):
             headers[name.strip().lower()] = value.strip()
 
     return status_code, headers, body
+
+
+def store_http_response(response_code, response_headers, response_body, url=None, payload=None, db_path="responses.db"):
+    """
+    Stores HTTP response details into SQLite database.
+
+    Parameters
+    ----------
+    response_code : int
+        HTTP status code.
+    response_headers : dict
+        HTTP response headers.
+    response_body : str
+        HTTP response body.
+    url : str, optional
+        The requested URL (default None).
+    payload : str, optional
+        The payload or character inserted in URL, if any (default None).
+    db_path : str
+        Path to SQLite database file (default "responses.db").
+    """
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS http_responses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            url TEXT,
+            payload TEXT,
+            status_code INTEGER,
+            headers TEXT,
+            body TEXT
+        )
+    """)
+
+    cursor.execute("""
+        INSERT INTO http_responses (url, payload, status_code, headers, body)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        url,
+        payload,
+        response_code,
+        json.dumps(response_headers),  # store headers as JSON
+        response_body
+    ))
+
+    conn.commit()
+    conn.close()
+
 
 
 ip_headers = ["X-Originating-IP", "X-Forwarded-For", "X-Remote-IP", "X-Remote-Addr", "X-Client-IP", "X-Host", "X-Forwared-Host", "X-Forwarded", "Forwarded-For", "Cluster-Client-IP", "Fastly-Client-IP", "X-Cluster-Client-IP", "CACHE_INFO", "CF_CONNECTING_IP", "CF-Connecting-IP", "CLIENT_IP", "Client-IP", "COMING_FROM", "CONNECT_VIA_IP", "FORWARD_FOR", "FORWARD-FOR", "FORWARDED_FOR_IP", "FORWARDED_FOR", "FORWARDED-FOR-IP", "FORWARDED-FOR", "FORWARDED", "HTTP-CLIENT-IP", "HTTP-FORWARDED-FOR-IP", "HTTP-PC-REMOTE-ADDR", "HTTP-PROXY-CONNECTION", "HTTP-VIA", "HTTP-X-FORWARDED-FOR-IP", "HTTP-X-IMFORWARDS", "HTTP-XROXY-CONNECTION", "PC_REMOTE_ADDR", "PRAGMA", "PROXY_AUTHORIZATION", "PROXY_CONNECTION", "Proxy-Client-IP", "PROXY", "REMOTE_ADDR", "Source-IP", "True-Client-IP", "Via", "VIA", "WL-Proxy-Client-IP", "X_CLUSTER_CLIENT_IP", "X_COMING_FROM", "X_DELEGATE_REMOTE_HOST", "X_FORWARDED_FOR_IP", "X_FORWARDED_FOR", "X_FORWARDED", "X_IMFORWARDS", "X_LOCKING", "X_LOOKING", "X_REAL_IP", "X-Backend-Host", "X-BlueCoat-Via", "X-Cache-Info", "X-Forward-For", "X-Forwarded-By", "X-Forwarded-For-Original", "X-Forwarded-For", "X-Forwarded-For", "X-Forwarded-Server", "X-Forwarded-Host", "X-From-IP", "X-From", "X-Gateway-Host", "X-Host", "X-Ip", "X-Original-Host", "X-Original-IP", "X-Original-Remote-Addr", "X-Original-Url", "X-Originally-Forwarded-For", "X-Originating-IP", "X-ProxyMesh-IP", "X-ProxyUser-IP", "X-Real-IP", "X-Remote-Addr", "X-Remote-IP", "X-True-Client-IP", "XONNECTION", "XPROXY", "XROXY_CONNECTION", "Z-Forwarded-For", "ZCACHE_CONTROL"]
@@ -1703,6 +1755,7 @@ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 F
             # NOTE: Do NOT include a Content-Length header in `headers` when providing a `body`. The function automatically calculates and adds Content-Length for POST, PUT, PATCH requests.
             headers = parse_headers(required_headers)
 
+            #* Add request body to body_data, if don't wanna add body data leave comment it out.
     #         body_data = """
     # {
     #     "name": "John Doe",
@@ -1713,7 +1766,7 @@ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 F
             req_b, req_esc, resp_b, resp_esc = raw_http_request(
                 "example.com",
                 port=443,
-                method="POST",
+                method="POST", 
                 path="/",
                 # proxy=("127.0.0.1", 9090),  #! Use proxy with caution, as it might reject some requests containing mutated headers sent with the intention of Header Smuggling.
                 insecure=True,
@@ -1733,3 +1786,5 @@ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 F
             response_code, response_headers, response_body = parse_raw_http_response(raw_response=resp_b)
             print(response_code)
             print(response_headers)
+
+            store_http_response(response_code, response_headers, response_body, payload=repr(raw_hdrs))
