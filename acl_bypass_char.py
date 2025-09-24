@@ -16,7 +16,7 @@ import ssl
 
 from urllib.parse import urlparse, urlunparse, quote
 import urllib.parse
-from ip_spoofer import raw_http_request, parse_raw_http_response, parse_headers, store_http_response
+from ip_spoofer import raw_http_request, parse_raw_http_response, parse_headers, store_http_response, get_base_url
 
 
 def insert_char_in_url(url: str, char: str):
@@ -85,15 +85,6 @@ def insert_char_in_url(url: str, char: str):
         urls.append(new_url)
 
     return list(dict.fromkeys(urls))  # dedupe while preserving order
-
-
-def get_base_url(url):
-    """
-    Returns the base URL (scheme + domain) from an arbitrary URL.
-    Example: http://example.com/admin -> http://example.com
-    """
-    parsed = urlparse(url)
-    return f"{parsed.scheme}://{parsed.netloc}"
 
 
 print("Doesn't add a real browswer User-Agent header by default!")

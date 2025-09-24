@@ -4,8 +4,6 @@ import ssl
 import sqlite3
 import json
 
-from acl_bypass_char import get_base_url
-
 
 def raw_http_request(host, port=443, method="GET", path="/", proxy=None,
                      insecure=False, headers=None, raw_headers=None,
@@ -1541,6 +1539,15 @@ def parse_headers(header_string):
             key, value = parts
             headers[key.strip()] = value.strip()
     return headers
+
+
+def get_base_url(url):
+    """
+    Returns the base URL (scheme + domain) from an arbitrary URL.
+    Example: http://example.com/admin -> http://example.com
+    """
+    parsed = urlparse(url)
+    return f"{parsed.scheme}://{parsed.netloc}"
 
 
 #* To test only selected techniques, comment out HRS method item from all_mutation_headers dictionary

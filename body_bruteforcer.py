@@ -3,8 +3,7 @@ import ssl
 
 from urllib.parse import urlparse, urlunparse, quote
 import urllib.parse
-from ip_spoofer import raw_http_request, parse_raw_http_response, parse_headers, store_http_response
-from acl_bypass_char import get_base_url
+from ip_spoofer import raw_http_request, parse_raw_http_response, parse_headers, store_http_response, get_base_url
 
 print("Doesn't add a real browswer User-Agent header by default!")
 
