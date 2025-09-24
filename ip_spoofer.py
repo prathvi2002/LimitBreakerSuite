@@ -4,6 +4,8 @@ import ssl
 import sqlite3
 import json
 
+from urllib.parse import urlparse
+
 
 def raw_http_request(host, port=443, method="GET", path="/", proxy=None,
                      insecure=False, headers=None, raw_headers=None,

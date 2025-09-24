@@ -18,7 +18,7 @@ raw_characters = [
 url_encoded_characters = []
 
 for char in raw_characters:
-    url_encoded_characters.append(urllib.parse.quote())
+    url_encoded_characters.append(urllib.parse.quote(char))
 
 characters = raw_characters + url_encoded_characters
 
