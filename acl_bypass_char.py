@@ -15,6 +15,7 @@ import socket
 import ssl
 
 from urllib.parse import urlparse, urlunparse, quote
+import urllib.parse
 from ip_spoofer import raw_http_request, parse_raw_http_response, parse_headers, store_http_response
 
 
@@ -98,12 +99,18 @@ def get_base_url(url):
 print("Doesn't add a real browswer User-Agent header by default!")
 
 
-characters = [
+raw_characters = [
     "\x00", "\x01", "\x02", "\x03", "\x04", "\x05", "\x06", "\x07", "\x08", "\x09", "\x0A", "\x0B",
     "\x0C", "\x0D", "\x0E", "\x0F", "\x10", "\x11", "\x12", "\x13", "\x14", "\x15", "\x16", "\x17",
     "\x18", "\x19", "\x1A", "\x1B", "\x1C", "\x1D", "\x1E", "\x1F", "\x20", "\x7F", "\xA0", "\xAD"
 ]
 
+url_encoded_characters = []
+
+for char in raw_characters:
+    url_encoded_characters.append(urllib.parse.quote())
+
+characters = raw_characters + url_encoded_characters
 
 for character in characters:
 
