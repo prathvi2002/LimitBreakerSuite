@@ -148,4 +148,4 @@ for character in characters:
         print(response_code)
         print(response_headers)
 
-        store_http_response(response_code, response_headers, response_body, payload=repr(url), table_name="ip_spoofer")
+        store_http_response(response_code, response_headers, response_body, payload=repr(url), table_name="acl_bypass_char")

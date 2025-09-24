@@ -26,7 +26,7 @@ characters = raw_characters + url_encoded_characters
 # ------------------------------------------------------------------------------------
 
 
-for character in characters:  #* change this for loop to change payloads
+for payload in characters:  #* change this for loop to change payloads
 
     ##* Modify from here to suite target.
 
@@ -35,8 +35,8 @@ for character in characters:  #* change this for loop to change payloads
     #* replace required_headers string with headers target requires
     required_headers = """User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0"""
     #* replace body with target body
-    body_data = """
-    {"email":"test@email.com"}"""
+    body_data = f'''
+{{"email":"test@email.com{payload}"}}'''
 
     url_path = target_url.replace(get_base_url(target_url), "")
 
@@ -63,4 +63,4 @@ for character in characters:  #* change this for loop to change payloads
     print(response_headers)
 
     # *change the payload parameter value with the for loop variable name
-    store_http_response(response_code, response_headers, response_body, payload=repr(character), table_name="ip_spoofer")
+    store_http_response(response_code, response_headers, response_body, payload=repr(payload), table_name="body_bruteforcer")
