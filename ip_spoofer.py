@@ -211,9 +211,9 @@ def parse_raw_http_response(raw_response: bytes):
     return status_code, headers, body
 
 
-def store_http_response(response_code, response_headers, response_body, url=None, payload=None, db_path="responses.db"):
+def store_http_response(response_code, response_headers, response_body, url=None, payload=None, table_name="http_responses"):
     """
-    Stores HTTP response details into SQLite database.
+    Store HTTP response details into SQLite database `responses.db`.
 
     Parameters
     ----------
@@ -227,14 +227,21 @@ def store_http_response(response_code, response_headers, response_body, url=None
         The requested URL (default None).
     payload : str, optional
         The payload or character inserted in URL, if any (default None).
-    db_path : str
-        Path to SQLite database file (default "responses.db").
+    table_name : str
+        Name of the SQLite table. Defaults to "http_responses".
+
+    Notes
+    -----
+    - Database file is always created as "responses.db".
+    - Table name can be customized per function call.
+    - Headers are stored as JSON.
     """
+    db_path = "responses.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS http_responses (
+    cursor.execute(f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             url TEXT,
             payload TEXT,
@@ -244,20 +251,19 @@ def store_http_response(response_code, response_headers, response_body, url=None
         )
     """)
 
-    cursor.execute("""
-        INSERT INTO http_responses (url, payload, status_code, headers, body)
+    cursor.execute(f"""
+        INSERT INTO {table_name} (url, payload, status_code, headers, body)
         VALUES (?, ?, ?, ?, ?)
     """, (
         url,
         payload,
         response_code,
-        json.dumps(response_headers),  # store headers as JSON
+        json.dumps(response_headers),
         response_body
     ))
 
     conn.commit()
     conn.close()
-
 
 
 ip_headers = ["X-Originating-IP", "X-Forwarded-For", "X-Remote-IP", "X-Remote-Addr", "X-Client-IP", "X-Host", "X-Forwared-Host", "X-Forwarded", "Forwarded-For", "Cluster-Client-IP", "Fastly-Client-IP", "X-Cluster-Client-IP", "CACHE_INFO", "CF_CONNECTING_IP", "CF-Connecting-IP", "CLIENT_IP", "Client-IP", "COMING_FROM", "CONNECT_VIA_IP", "FORWARD_FOR", "FORWARD-FOR", "FORWARDED_FOR_IP", "FORWARDED_FOR", "FORWARDED-FOR-IP", "FORWARDED-FOR", "FORWARDED", "HTTP-CLIENT-IP", "HTTP-FORWARDED-FOR-IP", "HTTP-PC-REMOTE-ADDR", "HTTP-PROXY-CONNECTION", "HTTP-VIA", "HTTP-X-FORWARDED-FOR-IP", "HTTP-X-IMFORWARDS", "HTTP-XROXY-CONNECTION", "PC_REMOTE_ADDR", "PRAGMA", "PROXY_AUTHORIZATION", "PROXY_CONNECTION", "Proxy-Client-IP", "PROXY", "REMOTE_ADDR", "Source-IP", "True-Client-IP", "Via", "VIA", "WL-Proxy-Client-IP", "X_CLUSTER_CLIENT_IP", "X_COMING_FROM", "X_DELEGATE_REMOTE_HOST", "X_FORWARDED_FOR_IP", "X_FORWARDED_FOR", "X_FORWARDED", "X_IMFORWARDS", "X_LOCKING", "X_LOOKING", "X_REAL_IP", "X-Backend-Host", "X-BlueCoat-Via", "X-Cache-Info", "X-Forward-For", "X-Forwarded-By", "X-Forwarded-For-Original", "X-Forwarded-For", "X-Forwarded-For", "X-Forwarded-Server", "X-Forwarded-Host", "X-From-IP", "X-From", "X-Gateway-Host", "X-Host", "X-Ip", "X-Original-Host", "X-Original-IP", "X-Original-Remote-Addr", "X-Original-Url", "X-Originally-Forwarded-For", "X-Originating-IP", "X-ProxyMesh-IP", "X-ProxyUser-IP", "X-Real-IP", "X-Remote-Addr", "X-Remote-IP", "X-True-Client-IP", "XONNECTION", "XPROXY", "XROXY_CONNECTION", "Z-Forwarded-For", "ZCACHE_CONTROL"]
@@ -1787,4 +1793,4 @@ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 F
             print(response_code)
             print(response_headers)
 
-            store_http_response(response_code, response_headers, response_body, payload=repr(raw_hdrs))
+            store_http_response(response_code, response_headers, response_body, payload=repr(raw_hdrs), table_name="ip_spoofer")

@@ -15,7 +15,7 @@ import socket
 import ssl
 
 from urllib.parse import urlparse, urlunparse, quote
-from ip_spoofer import raw_http_request, parse_raw_http_response, parse_headers
+from ip_spoofer import raw_http_request, parse_raw_http_response, parse_headers, store_http_response
 
 
 def insert_char_in_url(url: str, char: str):
@@ -112,8 +112,7 @@ for character in characters:
     #* replace target_url string with target URL
     target_url = "https://example.com/admin/panel/v2/access?isAdmin=True"  
     #* replace required_headers string with headers target requires
-    required_headers = """Cookie: datadome=1xlM0MFE3Q0HSqwA2cWg6i
-User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0"""
+    required_headers = """User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0"""
 
     urls = insert_char_in_url(target_url, character)
     for url in urls:
@@ -141,3 +140,5 @@ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 F
         response_code, response_headers, response_body = parse_raw_http_response(raw_response=resp_b)
         print(response_code)
         print(response_headers)
+
+        store_http_response(response_code, response_headers, response_body, payload=repr(url), table_name="ip_spoofer")
