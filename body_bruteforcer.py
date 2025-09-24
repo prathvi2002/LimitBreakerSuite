@@ -31,14 +31,14 @@ for payload in characters:  #* change this for loop to change payloads
     ##* Modify from here to suite target.
 
     #* replace target_url string with target full URL
-    target_url = "https://example.com/admin/panel/v2/access?isAdmin=True"  
+    target_full_url = "https://example.com/admin/panel/v2/access?isAdmin=True"  
     #* replace required_headers string with headers target requires
     required_headers = """User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0"""
     #* replace body with target body
     body_data = f'''
 {{"email":"test@email.com{payload}"}}'''
 
-    url_path = target_url.replace(get_base_url(target_url), "")
+    url_path = target_full_url.replace(get_base_url(target_full_url), "")
 
     headers = parse_headers(required_headers)
 

